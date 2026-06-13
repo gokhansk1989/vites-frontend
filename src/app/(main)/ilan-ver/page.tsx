@@ -1,5 +1,4 @@
 'use client';
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -7,7 +6,8 @@ import { z } from 'zod';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useCreateListing } from '@/hooks/useListings';
-import { Upload, X, ChevronDown, Zap, ImagePlus } from 'lucide-react';
+import { Upload, X, ChevronDown, Zap, Camera, ImagePlus } from 'lucide-react';
+import { useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 
 const schema = z.object({
@@ -70,8 +70,32 @@ const errTxt: React.CSSProperties = { marginTop: 5, fontSize: 12, color: 'var(--
 export default function CreateListingPage() {
   const router = useRouter();
   const [imageUrls, setImageUrls] = useState<string[]>([]);
-  const [imgInput, setImgInput] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const createListing = useCreateListing();
+
+  const handleFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const remaining = MAX_IMAGES - imageUrls.length;
+    if (remaining <= 0) { toast.error(`En fazla ${MAX_IMAGES} fotoğraf ekleyebilirsiniz`); return; }
+    const selected = Array.from(files).slice(0, remaining);
+    setUploading(true);
+    try {
+      const form = new FormData();
+      selected.forEach(f => form.append('files', f));
+      const res = await api.post('/upload/images', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setImageUrls(prev => [...prev, ...res.data.urls]);
+    } catch {
+      toast.error('Fotoğraf yüklenemedi');
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      if (cameraInputRef.current) cameraInputRef.current.value = '';
+    }
+  };
 
   const { data: categories } = useQuery({
     queryKey: ['categories'],
@@ -87,15 +111,6 @@ export default function CreateListingPage() {
     resolver: zodResolver(schema),
     defaultValues: { condition: 'GOOD' },
   });
-
-  const addImage = () => {
-    if (!imgInput.trim()) return;
-    if (imageUrls.length >= MAX_IMAGES) { toast.error(`En fazla ${MAX_IMAGES} fotoğraf ekleyebilirsiniz`); return; }
-    if (!imageUrls.includes(imgInput.trim())) {
-      setImageUrls(prev => [...prev, imgInput.trim()]);
-      setImgInput('');
-    }
-  };
 
   const onSubmit = async (data: FormData) => {
     if (imageUrls.length === 0) { toast.error('En az bir fotoğraf ekleyin'); return; }
@@ -132,38 +147,88 @@ export default function CreateListingPage() {
               {imageUrls.length}/{MAX_IMAGES} görsel
             </span>
           </div>
-          <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
-            <input
-              value={imgInput}
-              onChange={e => setImgInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addImage())}
-              style={{ ...inputSt(), flex: 1 }}
-              placeholder="Fotoğraf URL'si yapıştır ve Ekle'ye bas"
-            />
-            <button type="button" onClick={addImage} className="m-btn m-btn-primary" style={{ height: 44, padding: '0 20px', borderRadius: 8, whiteSpace: 'nowrap' }}>
-              <ImagePlus size={16} style={{ marginRight: 6 }} />Ekle
-            </button>
-          </div>
+
+          {/* Gizli input'lar */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            style={{ display: 'none' }}
+            onChange={e => handleFiles(e.target.files)}
+          />
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            style={{ display: 'none' }}
+            onChange={e => handleFiles(e.target.files)}
+          />
+
+          {/* Butonlar */}
+          {imageUrls.length < MAX_IMAGES && (
+            <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="m-btn"
+                style={{ flex: 1, gap: 8, justifyContent: 'center' }}
+              >
+                <ImagePlus size={17} />
+                <span>Galeriden Seç</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => cameraInputRef.current?.click()}
+                disabled={uploading}
+                className="m-btn"
+                style={{ flex: 1, gap: 8, justifyContent: 'center' }}
+              >
+                <Camera size={17} />
+                <span>Kamera</span>
+              </button>
+            </div>
+          )}
+
+          {/* Yükleme göstergesi */}
+          {uploading && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'var(--bg-2)', borderRadius: 8, marginBottom: 12, fontSize: 13, color: 'var(--ink-3)' }}>
+              <span style={{ width: 16, height: 16, border: '2px solid var(--accent)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'inline-block', flexShrink: 0 }} />
+              Fotoğraflar yükleniyor…
+            </div>
+          )}
+
+          {/* Önizleme grid */}
           {imageUrls.length > 0 ? (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(88px, 1fr))', gap: 10 }}>
               {imageUrls.map((url, i) => (
-                <div key={i} style={{ position: 'relative', width: 88, height: 88, borderRadius: 10, overflow: 'hidden', background: 'var(--bg-2)', border: '1px solid var(--line)' }}>
+                <div key={i} style={{ position: 'relative', aspectRatio: '1', borderRadius: 10, overflow: 'hidden', background: 'var(--bg-2)', border: i === 0 ? '2px solid var(--accent)' : '1px solid var(--line)' }}>
                   <img src={url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
-                  <button type="button" onClick={() => setImageUrls(p => p.filter((_, j) => j !== i))}
-                    style={{ position: 'absolute', top: 4, right: 4, width: 22, height: 22, background: 'oklch(0 0 0 / 0.6)', border: 0, borderRadius: '50%', display: 'grid', placeItems: 'center', cursor: 'pointer', color: '#fff' }}>
+                  <button
+                    type="button"
+                    onClick={() => setImageUrls(p => p.filter((_, j) => j !== i))}
+                    style={{ position: 'absolute', top: 4, right: 4, width: 22, height: 22, background: 'oklch(0 0 0 / 0.65)', border: 0, borderRadius: '50%', display: 'grid', placeItems: 'center', cursor: 'pointer', color: '#fff', backdropFilter: 'blur(4px)' }}
+                  >
                     <X size={12} />
                   </button>
                   {i === 0 && (
-                    <span style={{ position: 'absolute', bottom: 4, left: 4, fontSize: 10, fontFamily: 'var(--font-mono)', background: 'var(--accent)', color: 'var(--accent-ink)', borderRadius: 4, padding: '2px 5px' }}>Kapak</span>
+                    <span style={{ position: 'absolute', bottom: 4, left: 4, fontSize: 10, fontFamily: 'var(--font-mono)', background: 'var(--accent)', color: 'var(--accent-ink)', borderRadius: 4, padding: '2px 5px', letterSpacing: '0.04em' }}>KAPAK</span>
                   )}
                 </div>
               ))}
             </div>
-          ) : (
-            <div style={{ border: '2px dashed var(--line)', borderRadius: 12, padding: '32px 0', textAlign: 'center', color: 'var(--ink-3)' }}>
-              <Upload size={28} style={{ margin: '0 auto 8px', opacity: 0.4 }} />
-              <p style={{ fontSize: 13 }}>URL ile fotoğraf ekleyin</p>
-              <p style={{ fontSize: 11, opacity: 0.6, marginTop: 4 }}>En fazla {MAX_IMAGES} fotoğraf · İlk eklenen kapak görseli olur</p>
+          ) : !uploading && (
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              style={{ border: '2px dashed var(--line)', borderRadius: 12, padding: '36px 0', textAlign: 'center', color: 'var(--ink-3)', cursor: 'pointer', transition: 'border-color .15s' }}
+              onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--accent)')}
+              onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--line)')}
+            >
+              <Upload size={30} style={{ margin: '0 auto 10px', opacity: 0.35 }} />
+              <p style={{ fontSize: 14, fontWeight: 500 }}>Fotoğraf ekle</p>
+              <p style={{ fontSize: 12, opacity: 0.55, marginTop: 4 }}>En fazla {MAX_IMAGES} fotoğraf · JPG, PNG, WebP · Maks 10 MB</p>
             </div>
           )}
         </div>
