@@ -32,7 +32,18 @@ const CONDITIONS = [
   { value: 'POOR', label: 'Kötü', color: 'var(--bad)' },
 ];
 
-const CITIES = ['İstanbul', 'Ankara', 'İzmir', 'Bursa', 'Antalya', 'Adana', 'Konya', 'Gaziantep', 'Mersin', 'Kayseri'];
+const MAX_IMAGES = 8;
+
+const CITIES = [
+  'Adana','Adıyaman','Afyonkarahisar','Ağrı','Aksaray','Amasya','Ankara','Antalya','Ardahan','Artvin',
+  'Aydın','Balıkesir','Bartın','Batman','Bayburt','Bilecik','Bingöl','Bitlis','Bolu','Burdur',
+  'Bursa','Çanakkale','Çankırı','Çorum','Denizli','Diyarbakır','Düzce','Edirne','Elazığ','Erzincan',
+  'Erzurum','Eskişehir','Gaziantep','Giresun','Gümüşhane','Hakkari','Hatay','Iğdır','Isparta','İstanbul',
+  'İzmir','Kahramanmaraş','Karabük','Karaman','Kars','Kastamonu','Kayseri','Kilis','Kırıkkale','Kırklareli',
+  'Kırşehir','Kocaeli','Konya','Kütahya','Malatya','Manisa','Mardin','Mersin','Muğla','Muş',
+  'Nevşehir','Niğde','Ordu','Osmaniye','Rize','Sakarya','Samsun','Şanlıurfa','Siirt','Sinop',
+  'Şırnak','Sivas','Tekirdağ','Tokat','Trabzon','Tunceli','Uşak','Van','Yalova','Yozgat','Zonguldak',
+];
 
 const card: React.CSSProperties = {
   background: 'var(--bg-1)',
@@ -64,20 +75,12 @@ export default function CreateListingPage() {
 
   const { data: categories } = useQuery({
     queryKey: ['categories'],
-    queryFn: () => api.get('/listings').then(r => {
-      const cats = new Map();
-      r.data.items.forEach((l: any) => { if (l.category) cats.set(l.category.id, l.category); });
-      return Array.from(cats.values());
-    }),
+    queryFn: () => api.get('/listings/meta/categories').then(r => r.data),
   });
 
   const { data: brands } = useQuery({
     queryKey: ['brands'],
-    queryFn: () => api.get('/listings').then(r => {
-      const b = new Map();
-      r.data.items.forEach((l: any) => { if (l.brand) b.set(l.brand.id, l.brand); });
-      return Array.from(b.values());
-    }),
+    queryFn: () => api.get('/listings/meta/brands').then(r => r.data),
   });
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<any>({
@@ -86,7 +89,9 @@ export default function CreateListingPage() {
   });
 
   const addImage = () => {
-    if (imgInput.trim() && !imageUrls.includes(imgInput.trim())) {
+    if (!imgInput.trim()) return;
+    if (imageUrls.length >= MAX_IMAGES) { toast.error(`En fazla ${MAX_IMAGES} fotoğraf ekleyebilirsiniz`); return; }
+    if (!imageUrls.includes(imgInput.trim())) {
       setImageUrls(prev => [...prev, imgInput.trim()]);
       setImgInput('');
     }
@@ -121,7 +126,12 @@ export default function CreateListingPage() {
 
         {/* Fotoğraflar */}
         <div style={card}>
-          <p style={{ ...label, fontSize: 15, marginBottom: 16 }}>Fotoğraflar</p>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 16 }}>
+            <p style={{ ...label, fontSize: 15, margin: 0 }}>Fotoğraflar</p>
+            <span style={{ fontSize: 12, fontFamily: 'var(--font-mono)', color: imageUrls.length >= MAX_IMAGES ? 'var(--bad)' : 'var(--ink-3)' }}>
+              {imageUrls.length}/{MAX_IMAGES} görsel
+            </span>
+          </div>
           <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
             <input
               value={imgInput}
@@ -153,7 +163,7 @@ export default function CreateListingPage() {
             <div style={{ border: '2px dashed var(--line)', borderRadius: 12, padding: '32px 0', textAlign: 'center', color: 'var(--ink-3)' }}>
               <Upload size={28} style={{ margin: '0 auto 8px', opacity: 0.4 }} />
               <p style={{ fontSize: 13 }}>URL ile fotoğraf ekleyin</p>
-              <p style={{ fontSize: 11, opacity: 0.6, marginTop: 4 }}>İlk eklenen fotoğraf kapak görseli olur</p>
+              <p style={{ fontSize: 11, opacity: 0.6, marginTop: 4 }}>En fazla {MAX_IMAGES} fotoğraf · İlk eklenen kapak görseli olur</p>
             </div>
           )}
         </div>
