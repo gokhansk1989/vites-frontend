@@ -6,7 +6,18 @@ import { z } from 'zod';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
-import { User, Lock, Star, MapPin, Eye, EyeOff, ShoppingBag, Tag } from 'lucide-react';
+import { User, Lock, Star, MapPin, Eye, EyeOff, ShoppingBag, ChevronDown } from 'lucide-react';
+
+const CITIES = [
+  'Adana','Adıyaman','Afyonkarahisar','Ağrı','Aksaray','Amasya','Ankara','Antalya','Ardahan','Artvin',
+  'Aydın','Balıkesir','Bartın','Batman','Bayburt','Bilecik','Bingöl','Bitlis','Bolu','Burdur',
+  'Bursa','Çanakkale','Çankırı','Çorum','Denizli','Diyarbakır','Düzce','Edirne','Elazığ','Erzincan',
+  'Erzurum','Eskişehir','Gaziantep','Giresun','Gümüşhane','Hakkari','Hatay','Iğdır','Isparta','İstanbul',
+  'İzmir','Kahramanmaraş','Karabük','Karaman','Kars','Kastamonu','Kayseri','Kilis','Kırıkkale','Kırklareli',
+  'Kırşehir','Kocaeli','Konya','Kütahya','Malatya','Manisa','Mardin','Mersin','Muğla','Muş',
+  'Nevşehir','Niğde','Ordu','Osmaniye','Rize','Sakarya','Samsun','Şanlıurfa','Siirt','Sinop',
+  'Şırnak','Sivas','Tekirdağ','Tokat','Trabzon','Tunceli','Uşak','Van','Yalova','Yozgat','Zonguldak',
+];
 import toast from 'react-hot-toast';
 
 const profileSchema = z.object({
@@ -48,7 +59,7 @@ export default function ProfilePage() {
 
   const { data: profile } = useQuery({
     queryKey: ['my-profile'],
-    queryFn: () => api.get('/users/profile').then(r => r.data),
+    queryFn: () => api.get('/users/me').then(r => r.data),
   });
 
   const profileForm = useForm<ProfileData>({ resolver: zodResolver(profileSchema) });
@@ -66,13 +77,13 @@ export default function ProfilePage() {
   }, [profile]);
 
   const updateProfile = useMutation({
-    mutationFn: (data: ProfileData) => api.patch('/users/profile', data).then(r => r.data),
+    mutationFn: (data: ProfileData) => api.patch('/users/me', data).then(r => r.data),
     onSuccess: (updated) => { setAuth(updated, token!); toast.success('Profil güncellendi'); },
     onError: () => toast.error('Güncellenemedi'),
   });
 
   const changePassword = useMutation({
-    mutationFn: (data: PasswordData) => api.post('/users/change-password', data),
+    mutationFn: (data: PasswordData) => api.patch('/users/me/password', data),
     onSuccess: () => { toast.success('Şifre değiştirildi'); passwordForm.reset(); },
     onError: () => toast.error('Şifre değiştirilemedi'),
   });
@@ -142,7 +153,13 @@ export default function ProfilePage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
             <div>
               <label style={lbl}>Şehir</label>
-              <input {...profileForm.register('city')} style={inp()} placeholder="İstanbul" />
+              <div style={{ position: 'relative' }}>
+                <select {...profileForm.register('city')} style={{ ...inp(), paddingRight: 36, appearance: 'none' }}>
+                  <option value="">Seçin…</option>
+                  {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+                <ChevronDown size={15} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink-3)', pointerEvents: 'none' }} />
+              </div>
             </div>
             <div>
               <label style={lbl}>Profil Fotoğrafı URL</label>
