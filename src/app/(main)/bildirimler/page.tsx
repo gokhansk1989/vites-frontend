@@ -29,7 +29,7 @@ export default function NotificationsPage() {
   });
 
   const notifications = data?.items ?? [];
-  const unreadCount = data?.unreadCount ?? 0;
+  const unreadCount = data?.meta?.unreadCount ?? 0;
 
   return (
     <div className="m-wrap" style={{ maxWidth: 680, paddingTop: 36, paddingBottom: 60 }}>

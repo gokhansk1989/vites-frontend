@@ -6,7 +6,7 @@ export function useNotifications() {
   const { user } = useAuthStore();
   return useQuery({
     queryKey: ['notifications'],
-    queryFn: () => api.get('/notifications').then((r: any) => r.data),
+    queryFn: () => api.get('/users/me/notifications').then((r: any) => r.data),
     enabled: !!user,
   });
 }

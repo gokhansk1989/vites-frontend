@@ -34,7 +34,7 @@ export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const { data: notifs } = useNotifications();
-  const unreadCount = notifs?.filter((n: any) => !n.isRead).length ?? 0;
+  const unreadCount = notifs?.meta?.unreadCount ?? 0;
 
   useEffect(() => { setMenuOpen(false); setSearchOpen(false); }, [pathname]);
   useEffect(() => {
