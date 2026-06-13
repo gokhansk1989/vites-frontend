@@ -125,7 +125,7 @@ export function Header() {
                 </Link>
                 <Link href="/mesajlarim" style={iconBtn}><MessageSquare size={19} /></Link>
                 <Link href="/profilim" style={iconBtn}><User size={19} /></Link>
-                <button onClick={() => clearAuth()} style={{ ...iconBtn, cursor: 'pointer', border: '1px solid var(--line)' }}>
+                <button onClick={() => { clearAuth(); router.push('/'); }} style={{ ...iconBtn, cursor: 'pointer', border: '1px solid var(--line)' }}>
                   <LogOut size={18} />
                 </button>
               </>
@@ -208,7 +208,7 @@ export function Header() {
               <Plus size={20} strokeWidth={2.5} />İlan Ver
             </Link>
             {user ? (
-              <button onClick={() => { clearAuth(); setMenuOpen(false); }} className="m-btn m-btn-ghost" style={{ height: 48, fontSize: 15, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, width: '100%' }}>
+              <button onClick={() => { clearAuth(); setMenuOpen(false); router.push('/'); }} className="m-btn m-btn-ghost" style={{ height: 48, fontSize: 15, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, width: '100%' }}>
                 <LogOut size={18} />Çıkış Yap
               </button>
             ) : (
