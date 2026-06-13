@@ -19,4 +19,7 @@ jobs:
             git pull origin main
             npm ci --legacy-peer-deps
             npm run build
-            pm2 restart motorya-frontend || pm2 start npm --name motorya-frontend -- start
+            pm2 describe motorya-frontend > /dev/null 2>&1 \
+              && pm2 restart motorya-frontend \
+              || pm2 start node_modules/.bin/next --name motorya-frontend -- start -p 3001
+            pm2 save
