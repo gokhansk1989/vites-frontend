@@ -43,12 +43,12 @@ function SearchPageInner() {
 
   const { data: categories } = useQuery({
     queryKey: ['categories'],
-    queryFn: () => api.get('/listings/categories').then((r) => r.data),
+    queryFn: () => api.get('/listings/meta/categories').then((r) => r.data),
   });
 
   const { data: brands } = useQuery({
     queryKey: ['brands'],
-    queryFn: () => api.get('/listings/brands').then((r) => r.data),
+    queryFn: () => api.get('/listings/meta/brands').then((r) => r.data),
   });
 
   const { data, isLoading } = useSearch({
